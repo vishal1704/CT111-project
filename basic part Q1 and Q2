@@ -1,0 +1,81 @@
+%%
+% (2,1,2)convolutional encoder
+clc;clearvars; close all;
+k=input('Enter value of k:');
+for i=1:k
+    m(i)=randi(2)-1;%  message to be encoded generation
+end
+ 
+p=2 ;% number of memory required
+d1=0;
+d2=0;%% initialize contents of memory
+z = zeros(1,p);
+mm = horzcat(m,z); %additional zeros added
+x=[]; % memory states
+c=[];% code vector
+for i=1:1:length(mm)
+    d1(i+1)=mm(i);
+    d2(i+1)=d1(i);
+    x=[x; d1(i) d2(i)];
+    u (i) = xor( x(i,1) , x(i,2) );
+    c1 (i)= xor(u(i),mm(i));  % First Output Bit
+    c2 (i)= xor(mm(i),x(i,2)); % Second Ouput Bit
+    c =[c c1(i) c2(i)];
+end
+disp('message sequence');
+m
+disp(' Code Vector');
+c
+
+%%
+% BSC channel
+
+p = 0.5; % error probability
+p_error = rand(size(c)) < p;
+y = c; % first  copy
+y(p_error) = 1 - y(p_error); % make 0 -> 1 and 1 -> 0
+disp('BSC channel passed message sequence');
+y
+%%
+% BEC channel
+
+p = 0.5;
+y = c;
+p_erased = rand(1,length(c));
+for i=1:length(c)
+    if p_erased(i) < p
+        
+        y(i) = -1 ;
+        
+    end
+end
+disp('BEC channel passed message sequence');
+y
+%%
+% gaussian channel
+s = 1;
+sigma2 = 1; sigma = sqrt(sigma2);
+r_decision_boundary = 0;
+q=zeros(1,2*k+4);
+for i = 1:length(c)
+   if c(i) == 1 % if X = 1, transmit s, else transmit -s volts
+     s_tx = s;
+   else
+     s_tx = -s;
+   end
+    % Matlab s function randn generates Gaussian distributed random
+    % variable with variance of 1. Multiply by sigma to make the variance
+    % sigma^2
+    n = sigma*randn;
+    % received signal
+    r = s_tx + n;
+    % Bayesian receiver
+    if r > r_decision_boundary
+      Xrx= 1;
+    else
+      Xrx = 0;
+    end
+    q(i)=Xrx;
+end
+disp('Gaussian channel passed message sequence');
+q
